@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Gestión Económica</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;color:#1a1a1a;font-size:14px}
+.topbar{background:#1F3864;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:16px;font-weight:600;letter-spacing:.02em}
+.topbar .sub{font-size:12px;opacity:.7;margin-top:2px}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot-ok{background:#4caf50}.dot-err{background:#f44336}.dot-load{background:#ff9800;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.status-bar{background:#fff;border-bottom:1px solid #e0e0e0;padding:8px 20px;font-size:12px;color:#666;display:flex;align-items:center}
+.nav{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 20px;display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.nav button{padding:12px 14px;border:none;background:transparent;cursor:pointer;font-size:13px;color:#666;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
+.nav button.active{color:#1F3864;border-bottom-color:#1F3864;font-weight:500}
+.nav button:hover:not(.active){background:#f5f5f5;color:#333}
+.content{max-width:1000px;margin:0 auto;padding:20px}
+.screen{display:none}.screen.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.card{background:#fff;border-radius:10px;padding:16px;text-align:center;border:1px solid #e8e8e8}
+.card .lbl{font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.card .val{font-size:22px;font-weight:600}
+.pos{color:#2e7d32}.neg{color:#c62828}.neu{color:#1F3864}
+.sec{background:#fff;border-radius:10px;border:1px solid #e8e8e8;padding:20px;margin-bottom:16px}
+.sec h3{font-size:11px;font-weight:600;color:#888;margin-bottom:16px;text-transform:uppercase;letter-spacing:.06em}
+.frow{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.frow label{font-size:13px;color:#555;min-width:160px;flex-shrink:0}
+.frow input,.frow select,.frow textarea{flex:1;min-width:140px;max-width:280px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;font-size:13px;outline:none;transition:border .15s}
+.frow input:focus,.frow select:focus{border-color:#1F3864}
+.btn{padding:9px 22px;border-radius:8px;border:none;background:#1F3864;color:#fff;cursor:pointer;font-size:13px;font-weight:500;margin-top:8px;transition:all .15s}
+.btn:hover{background:#162d4e}.btn:disabled{opacity:.4;cursor:not-allowed}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:10px 12px;color:#888;border-bottom:1px solid #eee;font-weight:500;white-space:nowrap;font-size:12px}
+.tbl td{padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fafafa}
+.nr{text-align:right}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.badge.pos{background:#e8f5e9;color:#2e7d32}
+.badge.neg{background:#ffebee;color:#c62828}
+.badge.neu{background:#f3f3f3;color:#666}
+.badge.warn{background:#fff8e1;color:#e65100}
+.badge.info{background:#e3f2fd;color:#1565c0}
+.mes-sel{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+.mes-sel button{padding:5px 11px;border-radius:20px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:12px;color:#666;transition:all .15s}
+.mes-sel button.active{background:#1F3864;color:#fff;border-color:#1F3864}
+.mes-sel button:hover:not(.active){background:#f0f0f0}
+.bar-wrap{margin:10px 0}
+.bar-lbl{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px}
+.bar-track{height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.del-btn{padding:3px 9px;border-radius:6px;border:1px solid #ffcdd2;background:transparent;color:#e53935;cursor:pointer;font-size:11px;transition:all .15s}
+.del-btn:hover{background:#ffebee}
+.sep{height:1px;background:#f0f0f0;margin:16px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}.frow label{min-width:120px}.frow input,.frow select{max-width:100%}}
+.empty{color:#aaa;text-align:center;padding:24px;font-size:13px}
+.ref-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.tot-row{background:#f9f9f9;font-weight:600}
+footer{text-align:center;padding:30px;color:#bbb;font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="h1">Sistema de Gestión Económica</div>
+    <div class="sub">Conectado a Google Sheets</div>
+  </div>
+  <div style="font-size:12px;opacity:.8" id="top-mes"></div>
+</div>
+
+<div class="status-bar">
+  <span class="status-dot dot-load" id="dot"></span>
+  <span id="st-msg">Conectando con Google Sheets...</span>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="go('panel',this)">Panel</button>
+  <button onclick="go('ingresos',this)">Ingresos</button>
+  <button onclick="go('egresos',this)">Egresos</button>
+  <button onclick="go('compras',this)">Ord. Compra</button>
+  <button onclick="go('refrigerios',this)">Refrigerios</button>
+  <button onclick="go('viandas',this)">Viandas</button>
+  <button onclick="go('nomina',this)">Nomina</button>
+  <button onclick="go('gastos',this)">Gastos Efectivo</button>
+  <button onclick="go('historial',this)">Historial</button>
+</div>
+
+<div class="content">
+
+<!-- PANEL -->
+<div id="s-panel" class="screen active">
+  <div class="mes-sel" id="ms-panel"></div>
+  <div class="cards">
+    <div class="card"><div class="lbl">Ingresos</div><div class="val pos" id="p-ing">—</div></div>
+    <div class="card"><div class="lbl">Egresos</div><div class="val neg" id="p-egr">—</div></div>
+    <div class="card"><div class="lbl">Resultado</div><div class="val" id="p-res">—</div></div>
+    <div class="card"><div class="lbl">Margen</div><div class="val" id="p-mar">—</div></div>
+  </div>
+  <div class="sec">
+    <div class="bar-wrap"><div class="bar-lbl"><span>Ingresos</span><span id="biv">—</span></div><div class="bar-track"><div class="bar-fill" id="bi" style="background:#4caf50;width:0%"></div></div></div>
+    <div class="bar-wrap"><div class="bar-lbl"><span>Egresos</span><span id="bev">—</span></div><div class="bar-track"><div class="bar-fill" id="be" style="background:#ef5350;width:0%"></div></div></div>
+  </div>
+  <div class="grid2">
+    <div class="sec"><h3>Ingresos por categoria</h3><div class="tbl-wrap"><table class="tbl" id="t-ing-cat"></table></div></div>
+    <div class="sec"><h3>Egresos por categoria</h3><div class="tbl-wrap"><table class="tbl" id="t-egr-cat"></table></div></div>
+  </div>
+</div>
+
+<!-- INGRESOS -->
+<div id="s-ingresos" class="screen">
+  <div class="mes-sel" id="ms-ing"></div>
+  <div class="sec"><h3>Tickets — Comedor</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="i1-f"></div>
+    <div class="frow"><label>Cantidad de tickets</label><input type="number" id="i1-t" placeholder="0" min="0"></div>
+    <div class="frow"><label>Total ($)</label><input type="number" id="i1-v" placeholder="0.00" min="0"></div>
+    <button class="btn" onclick="sIng('Comedor')">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Tickets — Cafeteria</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="i2-f"></div>
+    <div class="frow"><label>Cantidad de tickets</label><input type="number" id="i2-t" placeholder="0" min="0"></div>
+    <div class="frow"><label>Total ($)</label><input type="number" id="i2-v" placeholder="0.00" min="0"></div>
+    <button class="btn" onclick="sIng('Cafeteria')">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Viandas, refrigerios y otros</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="i3-f"></div>
+    <div class="frow"><label>Categoria</label><select id="i3-c"><option>Viandas Casa Central</option><option>Ordenes de Refrigerios</option><option>Otros Ingresos</option></select></div>
+    <div class="frow"><label>Concepto</label><input type="text" id="i3-d" placeholder="Descripcion"></div>
+    <div class="frow"><label>Importe ($)</label><input type="number" id="i3-v" placeholder="0.00" min="0"></div>
+    <button class="btn" onclick="sIng('otros')">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Registros del mes</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-ing">
+      <tr><th style="width:95px">Fecha</th><th style="width:130px">Tipo</th><th>Concepto</th><th style="width:110px" class="nr">Importe</th><th style="width:60px"></th></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- EGRESOS -->
+<div id="s-egresos" class="screen">
+  <div class="mes-sel" id="ms-egr"></div>
+  <div class="sec"><h3>Cargar egreso</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="e-f"></div>
+    <div class="frow"><label>Categoria</label><select id="e-c"><option>Ordenes de Compra</option><option>Sueldos</option><option>Cargas Sociales</option><option>Gastos en Efectivo</option><option>Alquiler</option><option>Impuestos y Tasas</option><option>Comisiones Bancarias</option><option>Otros Egresos</option></select></div>
+    <div class="frow"><label>Concepto</label><input type="text" id="e-d" placeholder="Descripcion"></div>
+    <div class="frow"><label>Proveedor / Responsable</label><input type="text" id="e-p" placeholder="Opcional"></div>
+    <div class="frow"><label>Importe ($)</label><input type="number" id="e-v" placeholder="0.00" min="0"></div>
+    <button class="btn" onclick="sEgr()">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Registros del mes</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-egr">
+      <tr><th style="width:95px">Fecha</th><th style="width:130px">Categoria</th><th>Concepto</th><th style="width:110px" class="nr">Importe</th><th style="width:60px"></th></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ORDENES DE COMPRA -->
+<div id="s-compras" class="screen">
+  <div class="mes-sel" id="ms-oc"></div>
+  <div class="sec"><h3>Nueva orden de compra</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="oc-f"></div>
+    <div class="frow"><label>Proveedor</label><input type="text" id="oc-pr" placeholder="Nombre del proveedor"></div>
+    <div class="frow"><label>Descripcion</label><input type="text" id="oc-d" placeholder="Detalle de la OC"></div>
+    <div class="frow"><label>Categoria</label><select id="oc-c"><option>Mercaderia</option><option>Insumos</option><option>Limpieza</option><option>Equipamiento</option><option>Otros</option></select></div>
+    <div class="frow"><label>Total OC ($)</label><input type="number" id="oc-v" placeholder="0.00" min="0"></div>
+    <div class="frow"><label>Estado</label><select id="oc-e"><option>Pendiente</option><option>Pagada</option><option>Vencida</option></select></div>
+    <button class="btn" onclick="sOC()">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Ordenes del mes</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-oc">
+      <tr><th style="width:95px">Fecha</th><th style="width:140px">Proveedor</th><th>Descripcion</th><th style="width:110px" class="nr">Total</th><th style="width:90px">Estado</th><th style="width:60px"></th></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- REFRIGERIOS -->
+<div id="s-refrigerios" class="screen">
+  <div class="mes-sel" id="ms-ref"></div>
+  <div class="ref-sum" id="ref-cards"></div>
+  <div class="sec"><h3>Nueva orden de refrigerio</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="rf-f"></div>
+    <div class="frow"><label>Proveedor</label><input type="text" id="rf-pr" placeholder="Nombre del proveedor"></div>
+    <div class="frow"><label>Detalle</label><input type="text" id="rf-d" placeholder="Descripcion del refrigerio"></div>
+    <div class="frow"><label>Cantidad</label><input type="number" id="rf-q" placeholder="0" min="0"></div>
+    <div class="frow"><label>Precio unitario ($)</label><input type="number" id="rf-pu" placeholder="0.00" min="0"></div>
+    <div class="frow"><label>Fecha vto. pago</label><input type="date" id="rf-vto"></div>
+    <div class="frow"><label>Estado</label><select id="rf-e"><option>Emitida</option><option>Pendiente</option><option>Pagada</option><option>Vencida</option></select></div>
+    <button class="btn" onclick="sRef()">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Ordenes del mes</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-ref">
+      <tr><th style="width:95px">Fecha</th><th style="width:140px">Proveedor</th><th>Detalle</th><th style="width:110px" class="nr">Total</th><th style="width:90px">Estado</th><th style="width:60px"></th></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- VIANDAS -->
+<div id="s-viandas" class="screen">
+  <div class="mes-sel" id="ms-vi"></div>
+  <div class="sec"><h3>Registrar vianda</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="vi-f"></div>
+    <div class="frow"><label>Menu / Descripcion</label><input type="text" id="vi-m" placeholder="Descripcion del menu"></div>
+    <div class="frow"><label>Cant. solicitada</label><input type="number" id="vi-cs" placeholder="0" min="0"></div>
+    <div class="frow"><label>Cant. entregada</label><input type="number" id="vi-ce" placeholder="0" min="0"></div>
+    <div class="frow"><label>Precio unitario ($)</label><input type="number" id="vi-pu" placeholder="0.00" min="0"></div>
+    <div class="frow"><label>Responsable retiro</label><input type="text" id="vi-r" placeholder="Nombre"></div>
+    <div class="frow"><label>Observaciones</label><input type="text" id="vi-o" placeholder="Opcional"></div>
+    <button class="btn" onclick="sVi()">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Registros del mes</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-vi">
+      <tr><th style="width:95px">Fecha</th><th>Menu</th><th style="width:80px" class="nr">Solicit.</th><th style="width:80px" class="nr">Entregadas</th><th style="width:110px" class="nr">Total</th><th style="width:60px"></th></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- NOMINA -->
+<div id="s-nomina" class="screen">
+  <div class="mes-sel" id="ms-nom"></div>
+  <div class="sec"><h3>Agregar empleado al mes</h3>
+    <div class="frow"><label>Apellido y Nombre</label><input type="text" id="no-n" placeholder="Apellido, Nombre"></div>
+    <div class="frow"><label>Cargo / Puesto</label><input type="text" id="no-c" placeholder="Cargo"></div>
+    <div class="frow"><label>Categoria</label><input type="text" id="no-cat" placeholder="Categoria laboral"></div>
+    <div class="frow"><label>Sueldo bruto ($)</label><input type="number" id="no-s" placeholder="0.00" min="0"></div>
+    <div class="frow"><label>Observaciones</label><input type="text" id="no-o" placeholder="Opcional"></div>
+    <button class="btn" onclick="sNom()">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Nomina del mes</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-nom">
+      <tr><th>Apellido y Nombre</th><th style="width:140px">Cargo</th><th style="width:120px" class="nr">Sueldo Bruto</th><th style="width:60px"></th></tr>
+    </table></div>
+    <div style="margin-top:12px;text-align:right;font-size:14px;color:#555">Total abonado: <strong id="nom-total" style="color:#c62828">$0,00</strong></div>
+  </div>
+</div>
+
+<!-- GASTOS EFECTIVO -->
+<div id="s-gastos" class="screen">
+  <div class="mes-sel" id="ms-ge"></div>
+  <div class="sec"><h3>Registrar gasto en efectivo</h3>
+    <div class="frow"><label>Fecha</label><input type="date" id="ge-f"></div>
+    <div class="frow"><label>N Comprobante</label><input type="text" id="ge-comp" placeholder="Numero de comprobante"></div>
+    <div class="frow"><label>Concepto</label><input type="text" id="ge-d" placeholder="Descripcion del gasto"></div>
+    <div class="frow"><label>Categoria</label><select id="ge-c"><option>Mercaderia</option><option>Limpieza</option><option>Transporte</option><option>Papeleria</option><option>Servicios</option><option>Otros</option></select></div>
+    <div class="frow"><label>Responsable</label><input type="text" id="ge-r" placeholder="Quien realizo el gasto"></div>
+    <div class="frow"><label>Importe ($)</label><input type="number" id="ge-v" placeholder="0.00" min="0"></div>
+    <div class="frow"><label>Rendido</label><select id="ge-rd"><option>No</option><option>Si</option></select></div>
+    <button class="btn" onclick="sGE()">Guardar en Sheets</button>
+  </div>
+  <div class="sec"><h3>Gastos del mes</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-ge">
+      <tr><th style="width:95px">Fecha</th><th style="width:110px">Comprobante</th><th>Concepto</th><th style="width:80px">Rendido</th><th style="width:110px" class="nr">Importe</th><th style="width:60px"></th></tr>
+    </table></div>
+    <div style="margin-top:12px;text-align:right;font-size:14px;color:#555">Total: <strong id="ge-total" style="color:#c62828">$0,00</strong></div>
+  </div>
+</div>
+
+<!-- HISTORIAL -->
+<div id="s-historial" class="screen">
+  <div class="sec"><h3>Resumen anual 2026</h3>
+    <div class="tbl-wrap"><table class="tbl" id="t-hist">
+      <tr><th>Mes</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Egresos</th><th style="text-align:right">Resultado</th><th style="width:100px">Estado</th></tr>
+    </table></div>
+  </div>
+</div>
+
+</div>
+<footer>Sistema de Gestion Economica &mdash; Datos guardados en Google Sheets</footer>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbxcjDMYLP-5_ri8FczKb8kiUDK5cHIc0smVEKMDiZx0tH88erQZSDSFDVqlF5fcxunQ/exec';
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const today=new Date().toISOString().split('T')[0];
+const curMes=new Date().getMonth();
+const curAnio=new Date().getFullYear();
+
+let MES={panel:curMes,ing:curMes,egr:curMes,oc:curMes,ref:curMes,vi:curMes,nom:curMes,ge:curMes};
+let DB={Ingresos:[],Egresos:[],OrdenesCompra:[],Refrigerios:[],Viandas:[],Nomina:[],GastosEfectivo:[]};
+
+const fmt=n=>'$'+parseFloat(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const gv=id=>document.getElementById(id)?document.getElementById(id).value:'';
+const sv=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+const mn=str=>{if(!str)return -1;const d=new Date(str+'T00:00:00');return isNaN(d)?-1:d.getMonth();};
+const ya=str=>{if(!str)return -1;const d=new Date(str+'T00:00:00');return isNaN(d)?-1:d.getFullYear();};
+
+function setStatus(t,msg){
+  document.getElementById('dot').className='status-dot dot-'+t;
+  document.getElementById('st-msg').textContent=msg;
+}
+
+async function apiGet(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
+async function apiPost(b){const r=await fetch(API,{method:'POST',body:JSON.stringify(b)});return r.json();}
+
+async function init(){
+  try{
+    setStatus('load','Inicializando hojas en Google Sheets...');
+    await apiPost({action:'init'});
+    setStatus('load','Cargando datos...');
+    await loadAll();
+    setStatus('ok','Conectado a Google Sheets. Los datos se guardan en tiempo real.');
+  }catch(e){setStatus('err','Error de conexion. Verificar la URL del Apps Script.');}
+}
+
+async function loadAll(){
+  const sheets=['Ingresos','Egresos','OrdenesCompra','Refrigerios','Viandas','Nomina','GastosEfectivo'];
+  const results=await Promise.all(sheets.map(s=>apiGet({action:'read',sheet:s})));
+  sheets.forEach((s,i)=>{if(results[i].ok)DB[s]=results[i].rows||[];});
+  render();
+}
+
+function byMes(arr,fKey,m){
+  return arr.filter(r=>{
+    if(fKey==='Mes')return parseInt(r.Mes)===m+1&&parseInt(r.Anio||curAnio)===curAnio;
+    const fk=r[fKey||'Fecha'];
+    if(!fk)return false;
+    return mn(fk)===m&&ya(fk)===curAnio;
+  });
+}
+
+function sumF(arr,f){return arr.reduce((s,r)=>s+(parseFloat(r[f])||0),0);}
+
+function buildMS(id,key){
+  document.getElementById(id).innerHTML=MESES.map((m,i)=>
+    `<button class="${i===MES[key]?'active':''}" onclick="MES['${key}']=${i};render()">${m}</button>`
+  ).join('');
+}
+
+function go(s,btn){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById('s-'+s).classList.add('active');
+  btn.classList.add('active');
+}
+
+function render(){
+  document.getElementById('top-mes').textContent=MESES[curMes]+' '+curAnio;
+  ['panel','ing','egr','oc','ref','vi','nom','ge'].forEach(k=>{
+    const map={panel:'ms-panel',ing:'ms-ing',egr:'ms-egr',oc:'ms-oc',ref:'ms-ref',vi:'ms-vi',nom:'ms-nom',ge:'ms-ge'};
+    buildMS(map[k],k);
+  });
+  rPanel();rIng();rEgr();rOC();rRef();rVi();rNom();rGE();rHist();
+}
+
+function rPanel(){
+  const m=MES.panel;
+  const iM=byMes(DB.Ingresos,'Fecha',m);
+  const eM=byMes(DB.Egresos,'Fecha',m);
+  const tI=sumF(iM,'Importe'),tE=sumF(eM,'Importe'),res=tI-tE;
+  const mar=tI>0?(res/tI*100):0,mx=Math.max(tI,tE,1);
+
+  document.getElementById('p-ing').textContent=fmt(tI);
+  document.getElementById('p-egr').textContent=fmt(tE);
+  const pr=document.getElementById('p-res');pr.textContent=fmt(res);pr.className='val '+(res>=0?'pos':'neg');
+  const pm=document.getElementById('p-mar');pm.textContent=mar.toFixed(1)+'%';pm.className='val '+(res>=0?'pos':'neg');
+  document.getElementById('bi').style.width=(tI/mx*100).toFixed(1)+'%';
+  document.getElementById('be').style.width=(tE/mx*100).toFixed(1)+'%';
+  document.getElementById('biv').textContent=fmt(tI);
+  document.getElementById('bev').textContent=fmt(tE);
+
+  const ci={},ce={};
+  iM.forEach(r=>{const k=r.Categoria||r.Tipo||'Ingreso';ci[k]=(ci[k]||0)+(parseFloat(r.Importe)||0);});
+  eM.forEach(r=>{const k=r.Categoria||'Egreso';ce[k]=(ce[k]||0)+(parseFloat(r.Importe)||0);});
+
+  document.getElementById('t-ing-cat').innerHTML=
+    Object.entries(ci).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td class="nr pos">${fmt(v)}</td></tr>`).join('')||
+    `<tr><td colspan="2" class="empty">Sin registros</td></tr>`;
+  document.getElementById('t-egr-cat').innerHTML=
+    Object.entries(ce).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td class="nr neg">${fmt(v)}</td></tr>`).join('')||
+    `<tr><td colspan="2" class="empty">Sin registros</td></tr>`;
+}
+
+const delBtn=(sh,id)=>`<button class="del-btn" onclick="del('${sh}','${id}')">Borrar</button>`;
+const noRows=(cols,mes)=>`<tr><td colspan="${cols}" class="empty">Sin registros en ${MESES[mes]}</td></tr>`;
+
+function rIng(){
+  const rows=byMes(DB.Ingresos,'Fecha',MES.ing).slice().reverse();
+  document.getElementById('t-ing').innerHTML=
+    `<tr><th style="width:95px">Fecha</th><th style="width:130px">Tipo</th><th>Concepto</th><th style="width:110px" class="nr">Importe</th><th style="width:60px"></th></tr>`+
+    (rows.map(r=>`<tr><td>${r.Fecha||'—'}</td><td>${r.Categoria||r.Tipo||'—'}</td><td style="color:#888">${r.Concepto||'—'}</td><td class="nr pos">${fmt(r.Importe)}</td><td>${delBtn('Ingresos',r.ID)}</td></tr>`).join('')||noRows(5,MES.ing));
+}
+
+function rEgr(){
+  const rows=byMes(DB.Egresos,'Fecha',MES.egr).slice().reverse();
+  document.getElementById('t-egr').innerHTML=
+    `<tr><th style="width:95px">Fecha</th><th style="width:130px">Categoria</th><th>Concepto</th><th style="width:110px" class="nr">Importe</th><th style="width:60px"></th></tr>`+
+    (rows.map(r=>`<tr><td>${r.Fecha||'—'}</td><td>${r.Categoria||'—'}</td><td style="color:#888">${r.Concepto||'—'}</td><td class="nr neg">${fmt(r.Importe)}</td><td>${delBtn('Egresos',r.ID)}</td></tr>`).join('')||noRows(5,MES.egr));
+}
+
+function rOC(){
+  const rows=byMes(DB.OrdenesCompra,'Fecha',MES.oc).slice().reverse();
+  const tot=sumF(rows,'Total_OC');
+  document.getElementById('t-oc').innerHTML=
+    `<tr><th style="width:95px">Fecha</th><th style="width:140px">Proveedor</th><th>Descripcion</th><th style="width:110px" class="nr">Total</th><th style="width:90px">Estado</th><th style="width:60px"></th></tr>`+
+    (rows.map(r=>{
+      const eb=r.Estado==='Pagada'?'pos':r.Estado==='Vencida'?'neg':'warn';
+      return `<tr><td>${r.Fecha||'—'}</td><td>${r.Proveedor||'—'}</td><td style="color:#888">${r.Descripcion||'—'}</td><td class="nr">${fmt(r.Total_OC)}</td><td><span class="badge ${eb}">${r.Estado||'—'}</span></td><td>${delBtn('OrdenesCompra',r.ID)}</td></tr>`;
+    }).join('')||noRows(6,MES.oc))+
+    (rows.length?`<tr class="tot-row"><td colspan="3" style="padding:10px 12px">Total del mes</td><td class="nr">${fmt(tot)}</td><td colspan="2"></td></tr>`:'');
+}
+
+function rRef(){
+  const rows=byMes(DB.Refrigerios,'Fecha',MES.ref).slice().reverse();
+  const tE=sumF(rows.filter(r=>r.Estado==='Emitida'),'Total');
+  const tP=sumF(rows.filter(r=>r.Estado==='Pendiente'),'Total');
+  const tPg=sumF(rows.filter(r=>r.Estado==='Pagada'),'Total');
+  document.getElementById('ref-cards').innerHTML=
+    `<div class="card"><div class="lbl">Emitidas</div><div class="val neu">${fmt(tE)}</div></div>`+
+    `<div class="card"><div class="lbl">Pendientes de pago</div><div class="val neg">${fmt(tP)}</div></div>`+
+    `<div class="card"><div class="lbl">Pagadas</div><div class="val pos">${fmt(tPg)}</div></div>`;
+  document.getElementById('t-ref').innerHTML=
+    `<tr><th style="width:95px">Fecha</th><th style="width:140px">Proveedor</th><th>Detalle</th><th style="width:110px" class="nr">Total</th><th style="width:90px">Estado</th><th style="width:60px"></th></tr>`+
+    (rows.map(r=>{
+      const eb=r.Estado==='Pagada'?'pos':r.Estado==='Vencida'?'neg':r.Estado==='Pendiente'?'warn':'info';
+      return `<tr><td>${r.Fecha||'—'}</td><td>${r.Proveedor||'—'}</td><td style="color:#888">${r.Detalle||'—'}</td><td class="nr">${fmt(r.Total)}</td><td><span class="badge ${eb}">${r.Estado||'—'}</span></td><td>${delBtn('Refrigerios',r.ID)}</td></tr>`;
+    }).join('')||noRows(6,MES.ref));
+}
+
+function rVi(){
+  const rows=byMes(DB.Viandas,'Fecha',MES.vi).slice().reverse();
+  document.getElementById('t-vi').innerHTML=
+    `<tr><th style="width:95px">Fecha</th><th>Menu</th><th style="width:80px" class="nr">Solicit.</th><th style="width:80px" class="nr">Entregadas</th><th style="width:110px" class="nr">Total</th><th style="width:60px"></th></tr>`+
+    (rows.map(r=>`<tr><td>${r.Fecha||'—'}</td><td style="color:#888">${r.Menu||'—'}</td><td class="nr">${r.CantSolicitada||0}</td><td class="nr">${r.CantEntregada||0}</td><td class="nr">${fmt(r.Total)}</td><td>${delBtn('Viandas',r.ID)}</td></tr>`).join('')||noRows(6,MES.vi));
+}
+
+function rNom(){
+  const m=MES.nom;
+  const rows=DB.Nomina.filter(r=>parseInt(r.Mes)===m+1&&parseInt(r.Anio||curAnio)===curAnio);
+  const tot=sumF(rows,'SueldoBruto');
+  document.getElementById('t-nom').innerHTML=
+    `<tr><th>Apellido y Nombre</th><th style="width:140px">Cargo</th><th style="width:120px" class="nr">Sueldo Bruto</th><th style="width:60px"></th></tr>`+
+    (rows.map(r=>`<tr><td style="font-weight:500">${r.ApellidoNombre||'—'}</td><td style="color:#888">${r.Cargo||'—'}</td><td class="nr">${fmt(r.SueldoBruto)}</td><td>${delBtn('Nomina',r.ID)}</td></tr>`).join('')||`<tr><td colspan="4" class="empty">Sin empleados en ${MESES[m]}</td></tr>`);
+  document.getElementById('nom-total').textContent=fmt(tot);
+}
+
+function rGE(){
+  const rows=byMes(DB.GastosEfectivo,'Fecha',MES.ge).slice().reverse();
+  const tot=sumF(rows,'Importe');
+  document.getElementById('t-ge').innerHTML=
+    `<tr><th style="width:95px">Fecha</th><th style="width:110px">Comprobante</th><th>Concepto</th><th style="width:80px">Rendido</th><th style="width:110px" class="nr">Importe</th><th style="width:60px"></th></tr>`+
+    (rows.map(r=>`<tr><td>${r.Fecha||'—'}</td><td style="color:#888">${r.Comprobante||'—'}</td><td style="color:#888">${r.Concepto||'—'}</td><td><span class="badge ${r.Rendido==='Si'?'pos':'neg'}">${r.Rendido||'No'}</span></td><td class="nr neg">${fmt(r.Importe)}</td><td>${delBtn('GastosEfectivo',r.ID)}</td></tr>`).join('')||noRows(6,MES.ge));
+  document.getElementById('ge-total').textContent=fmt(tot);
+}
+
+function rHist(){
+  const rows=MESES.map((m,i)=>{
+    const tI=sumF(byMes(DB.Ingresos,'Fecha',i),'Importe');
+    const tE=sumF(byMes(DB.Egresos,'Fecha',i),'Importe');
+    const r=tI-tE;
+    if(tI===0&&tE===0)return `<tr><td>${m}</td><td class="nr" style="color:#bbb">—</td><td class="nr" style="color:#bbb">—</td><td class="nr" style="color:#bbb">—</td><td></td></tr>`;
+    return `<tr><td>${m}</td><td class="nr pos">${fmt(tI)}</td><td class="nr neg">${fmt(tE)}</td><td class="nr ${r>=0?'pos':'neg'}">${fmt(r)}</td><td><span class="badge ${r>0?'pos':r<0?'neg':'neu'}">${r>0?'Superavit':r<0?'Deficit':'Equilibrio'}</span></td></tr>`;
+  }).join('');
+  const tTI=MESES.reduce((_,m,i)=>_+sumF(byMes(DB.Ingresos,'Fecha',i),'Importe'),0);
+  const tTE=MESES.reduce((_,m,i)=>_+sumF(byMes(DB.Egresos,'Fecha',i),'Importe'),0);
+  const tR=tTI-tTE;
+  document.getElementById('t-hist').innerHTML=
+    `<tr><th>Mes</th><th style="text-align:right">Ingresos</th><th style="text-align:right">Egresos</th><th style="text-align:right">Resultado</th><th style="width:100px">Estado</th></tr>`+
+    rows+
+    `<tr class="tot-row"><td>Total anual</td><td class="nr pos">${fmt(tTI)}</td><td class="nr neg">${fmt(tTE)}</td><td class="nr ${tR>=0?'pos':'neg'}">${fmt(tR)}</td><td></td></tr>`;
+}
+
+async function save(sheet,data){
+  setStatus('load','Guardando en Google Sheets...');
+  try{
+    const r=await apiPost({action:'insert',sheet,data});
+    if(r.ok){DB[sheet].push({...data,ID:r.id});render();setStatus('ok','Guardado correctamente en Google Sheets.');}
+    else setStatus('err','Error al guardar: '+r.msg);
+  }catch(e){setStatus('err','Error de conexion con Google Sheets.');}
+}
+
+async function del(sheet,id){
+  if(!confirm('Borrar este registro?'))return;
+  setStatus('load','Eliminando...');
+  try{
+    const r=await apiPost({action:'delete',sheet,id});
+    if(r.ok){DB[sheet]=DB[sheet].filter(x=>x.ID!==id);render();setStatus('ok','Registro eliminado de Google Sheets.');}
+    else setStatus('err','Error al eliminar: '+r.msg);
+  }catch(e){setStatus('err','Error de conexion.');}
+}
+
+function sIng(tipo){
+  let data={};
+  if(tipo==='Comedor'){
+    const f=gv('i1-f'),v=gv('i1-v');if(!f||!v){alert('Completa fecha y total');return;}
+    data={Fecha:f,Tipo:'Comedor',Categoria:'Venta Tickets',Concepto:'Tickets Comedor',Importe:parseFloat(v),Observaciones:gv('i1-t')+' tickets'};
+    ['i1-f','i1-t','i1-v'].forEach(id=>sv(id,''));
+  }else if(tipo==='Cafeteria'){
+    const f=gv('i2-f'),v=gv('i2-v');if(!f||!v){alert('Completa fecha y total');return;}
+    data={Fecha:f,Tipo:'Cafeteria',Categoria:'Venta Tickets',Concepto:'Tickets Cafeteria',Importe:parseFloat(v),Observaciones:gv('i2-t')+' tickets'};
+    ['i2-f','i2-t','i2-v'].forEach(id=>sv(id,''));
+  }else{
+    const f=gv('i3-f'),v=gv('i3-v'),c=gv('i3-c');if(!f||!v){alert('Completa fecha e importe');return;}
+    data={Fecha:f,Tipo:c,Categoria:c,Concepto:gv('i3-d')||c,Importe:parseFloat(v),Observaciones:''};
+    ['i3-f','i3-v','i3-d'].forEach(id=>sv(id,''));
+  }
+  save('Ingresos',data);
+}
+
+function sEgr(){
+  const f=gv('e-f'),v=gv('e-v');if(!f||!v){alert('Completa fecha e importe');return;}
+  const data={Fecha:f,Categoria:gv('e-c'),Concepto:gv('e-d')||gv('e-c'),Proveedor:gv('e-p'),Importe:parseFloat(v)};
+  ['e-f','e-v','e-d','e-p'].forEach(id=>sv(id,''));
+  save('Egresos',data);
+}
+
+function sOC(){
+  const f=gv('oc-f'),v=gv('oc-v');if(!f||!v){alert('Completa fecha y total');return;}
+  const data={Fecha:f,Proveedor:gv('oc-pr'),Descripcion:gv('oc-d'),Categoria:gv('oc-c'),Total_OC:parseFloat(v),Estado:gv('oc-e')};
+  ['oc-f','oc-v','oc-pr','oc-d'].forEach(id=>sv(id,''));
+  save('OrdenesCompra',data);
+}
+
+function sRef(){
+  const f=gv('rf-f');if(!f){alert('Completa la fecha');return;}
+  const q=parseFloat(gv('rf-q')||0),pu=parseFloat(gv('rf-pu')||0);
+  const data={Fecha:f,Proveedor:gv('rf-pr'),Detalle:gv('rf-d'),Cantidad:q,PrecioUnit:pu,Total:q*pu,FechaVto:gv('rf-vto'),Estado:gv('rf-e'),Observaciones:''};
+  ['rf-f','rf-pr','rf-d','rf-q','rf-pu','rf-vto'].forEach(id=>sv(id,''));
+  save('Refrigerios',data);
+}
+
+function sVi(){
+  const f=gv('vi-f');if(!f){alert('Completa la fecha');return;}
+  const cs=parseFloat(gv('vi-cs')||0),ce=parseFloat(gv('vi-ce')||0),pu=parseFloat(gv('vi-pu')||0);
+  const data={Fecha:f,Menu:gv('vi-m'),CantSolicitada:cs,CantEntregada:ce,Diferencia:cs-ce,PrecioUnit:pu,Total:ce*pu,Responsable:gv('vi-r'),Observaciones:gv('vi-o')};
+  ['vi-f','vi-m','vi-cs','vi-ce','vi-pu','vi-r','vi-o'].forEach(id=>sv(id,''));
+  save('Viandas',data);
+}
+
+function sNom(){
+  const n=gv('no-n'),s=gv('no-s');if(!n||!s){alert('Completa nombre y sueldo');return;}
+  const data={Mes:MES.nom+1,Anio:curAnio,ApellidoNombre:n,Cargo:gv('no-c'),Categoria:gv('no-cat'),SueldoBruto:parseFloat(s),Observaciones:gv('no-o')};
+  ['no-n','no-c','no-cat','no-s','no-o'].forEach(id=>sv(id,''));
+  save('Nomina',data);
+}
+
+function sGE(){
+  const f=gv('ge-f'),v=gv('ge-v');if(!f||!v){alert('Completa fecha e importe');return;}
+  const data={Fecha:f,Comprobante:gv('ge-comp'),Concepto:gv('ge-d'),Categoria:gv('ge-c'),Responsable:gv('ge-r'),Importe:parseFloat(v),Rendido:gv('ge-rd'),Observaciones:''};
+  ['ge-f','ge-comp','ge-d','ge-r','ge-v'].forEach(id=>sv(id,''));
+  save('GastosEfectivo',data);
+}
+
+['i1-f','i2-f','i3-f','e-f','oc-f','rf-f','vi-f','ge-f'].forEach(id=>sv(id,today));
+init();
+</script>
+</body>
+</html>
